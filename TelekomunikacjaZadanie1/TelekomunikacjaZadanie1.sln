@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2043
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelekomunikacjaZadanie1", "TelekomunikacjaZadanie1\TelekomunikacjaZadanie1.csproj", "{D6C42736-4B97-468C-8385-507A153DFDAF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelekomunikacjaZadanie1Tests", "TelekomunikacjaZadanie1Tests\TelekomunikacjaZadanie1Tests.csproj", "{35A2498D-EB7C-4B7F-B5DB-2BC927B3C62B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D6C42736-4B97-468C-8385-507A153DFDAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6C42736-4B97-468C-8385-507A153DFDAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6C42736-4B97-468C-8385-507A153DFDAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6C42736-4B97-468C-8385-507A153DFDAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35A2498D-EB7C-4B7F-B5DB-2BC927B3C62B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35A2498D-EB7C-4B7F-B5DB-2BC927B3C62B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35A2498D-EB7C-4B7F-B5DB-2BC927B3C62B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35A2498D-EB7C-4B7F-B5DB-2BC927B3C62B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AABE9617-2357-4DBA-9F0E-AF87ABC6406F}
+	EndGlobalSection
+EndGlobal

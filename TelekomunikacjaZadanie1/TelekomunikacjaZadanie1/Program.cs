@@ -8,6 +8,12 @@ using System.Threading.Tasks;
 /* ===== Notes and details ==============================================================================
  * In BitMatrix class as well as in BitArray class we will be using the notation of the least important
  * bit located in the rightmost side of the array. This note is here to prevent the confusion.
+ * 
+ * Some general notes:
+ * Parity bits generation is achieved by multiplication of transposed message vector (with parity bits set to 0)
+ * and correction matrix.
+ * Warning! Overloaded operator * for the time being is implemented only for such operations and will not work on some
+ * custom matrices.
  */
 
 namespace TelekomunikacjaZadanie1
@@ -18,12 +24,12 @@ namespace TelekomunikacjaZadanie1
         {
             BitMatrix testMatrix = new BitMatrix(7, 1);
             testMatrix[0, 0] = false;
-            testMatrix[1, 0] = true;
-            testMatrix[2, 0] = false;
+            testMatrix[1, 0] = false;
+            testMatrix[2, 0] = true;
             testMatrix[3, 0] = false;
-            testMatrix[4, 0] = true;
-            testMatrix[5, 0] = true;
-            testMatrix[6, 0] = false;
+            testMatrix[4, 0] = false;
+            testMatrix[5, 0] = false;
+            testMatrix[6, 0] = true;
             Console.WriteLine("TestMatrix:");
             testMatrix.Print();
 
@@ -93,6 +99,9 @@ namespace TelekomunikacjaZadanie1
     {
         private BitArray[] bitArrays;
 
+        // BitMatrix Constructor
+        // Must take rows and columns to initialize the tables
+        // To do: add easy initialization method
         public BitMatrix(int rows, int columns, bool defaultValue = false)
         {
             bitArrays = new BitArray[rows];

@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
 
 /* ===== Notes and details ==============================================================================
  * In BitMatrix class as well as in BitArray class we will be using the notation of the least important
@@ -45,6 +42,30 @@ namespace TelekomunikacjaZadanie1
 
             Console.WriteLine();
             BitCorrection.SetParity(BitCorrection.oneError8bit, testMatrix).Print();
+
+            string filePath = "test.txt";
+
+            if(File.Exists(filePath))
+            {
+                Console.WriteLine("File open success!");
+            }
+
+            string[] lines = File.ReadAllLines("test.txt");
+
+            foreach(string elem in lines)
+            {
+                Console.WriteLine(elem);
+            }
+
+            //using (StreamWriter sw = File.CreateText("test.txt"))
+            //{
+            //    sw.WriteLine("aaa");
+            //    sw.WriteLine("bbb");
+            //    sw.WriteLine("ccc");
+            //}
+
+            BitMatrix testMatrix2 = new BitMatrix(lines[0]);
+            testMatrix2.Print();
 
             Console.ReadKey();
         }
@@ -163,6 +184,20 @@ namespace TelekomunikacjaZadanie1
             {
                 bitArrays[i] = rows[i];
             }
+        }
+
+        public BitMatrix(string row)
+        {
+            bitArrays = new BitArray[1];
+            char[] message = row.ToCharArray();
+            bitArrays[0] = new BitArray(message.Length);
+            for(int i = 0; i < message.Length; i++)
+            {
+                if (message[i] == '0') bitArrays[0][i] = false;
+                else if (message[i] == '1') bitArrays[0][i] = true;
+                else Console.WriteLine("BYŁO COŚ INNEGO NIŻ 0 ALBO 1, A DOKŁADNIE: " + message[i]);
+            }
+
         }
 
         public bool this[int i, int j]

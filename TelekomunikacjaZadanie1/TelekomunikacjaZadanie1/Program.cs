@@ -14,60 +14,100 @@ using System.IO;
  */
 
 namespace TelekomunikacjaZadanie1
-{ 
+{
     class Program
     {
         static void Main(string[] args)
         {
-            BitMatrix testMatrix = new BitMatrix(8, 1);
-            testMatrix[0, 0] = true;
-            testMatrix[1, 0] = false;
-            testMatrix[2, 0] = true;
-            testMatrix[3, 0] = false;
-            testMatrix[4, 0] = false;
-            testMatrix[5, 0] = false;
-            testMatrix[6, 0] = true;
-            testMatrix[7, 0] = true;
-            Console.WriteLine("TestMatrix:");
-            testMatrix.Print();
 
-            Console.WriteLine();
-            BitCorrection.oneError8bit.Print();
+            // ================================================
+            // === Reading from a file ========================
 
-            Console.WriteLine();
-            BitCorrection.twoErrors8bit.Print();
+            BitMatrix[] bitMatrices = ReadFromFile("test.txt");
 
-            Console.WriteLine();
-            BitCorrection.threeErrors8bit.Print();
 
-            Console.WriteLine();
-            BitCorrection.SetParity(BitCorrection.oneError8bit, testMatrix).Print();
+            // ================================================
+            // === Setting parity for one error correction ====
 
-            string filePath = "test.txt";
-
-            if(File.Exists(filePath))
+            BitMatrix[] encodedWords = new BitMatrix[bitMatrices.Length];
+            for (int i = 0; i < bitMatrices.Length; i++)
             {
-                Console.WriteLine("File open success!");
+                //encodedWords[i] = BitCorrection.SetParity(BitCorrection.oneError8bit, bitMatrices[i]);
+                encodedWords[i] = BitCorrection.SetParity(BitCorrection.twoErrors8bit, bitMatrices[i]);
             }
 
-            string[] lines = File.ReadAllLines("test.txt");
+            // ================================================
+            // === Saving encoded words to file ===============
 
-            foreach(string elem in lines)
+            WriteToFile("EncodedTest.txt", encodedWords);
+
+            Console.WriteLine("To simulate transmission errors, please modify EncodedTest.txt file");
+            Console.WriteLine("Press any key to continue...");
+            Console.ReadKey();
+            Console.WriteLine();
+
+            // ================================================
+            // === Reading from file and correcting errors ====
+
+            BitMatrix[] transmissedWords = ReadFromFile("EncodedTest.txt");
+            BitMatrix[] errorVector = new BitMatrix[transmissedWords.Length];
+
+            for (int i = 0; i < transmissedWords.Length; i++)
             {
-                Console.WriteLine(elem);
+                transmissedWords[i].Transpose();
+                //errorVector[i] = BitCorrection.oneError8bit * transmissedWords[i];
+                errorVector[i] = BitCorrection.twoErrors8bit * transmissedWords[i];
+                transmissedWords[i].Transpose();
             }
 
-            //using (StreamWriter sw = File.CreateText("test.txt"))
+            foreach (BitMatrix errVec in errorVector)
+            {
+                errVec.Print();
+            }
+
+            //for (int i = 0; i < BitCorrection.oneError8bit.Columns(); i++)
             //{
-            //    sw.WriteLine("aaa");
-            //    sw.WriteLine("bbb");
-            //    sw.WriteLine("ccc");
+            //    BitCorrection.oneError8bit.GetColumnAsRow(i).Print();
             //}
 
-            BitMatrix testMatrix2 = new BitMatrix(lines[0]);
-            testMatrix2.Print();
+            //BitCorrection.CheckErrors(BitCorrection.oneError8bit, errorVector[0]);
+            BitCorrection.CheckErrors(BitCorrection.twoErrors8bit, errorVector[0]);
 
-            Console.ReadKey();
+        }
+
+        public static void WriteToFile(string filePath, BitMatrix[] messageVector)
+        {
+            if (File.Exists(filePath))
+            {
+                using (StreamWriter sw = File.CreateText(filePath))
+                {
+                    foreach (BitMatrix elem in messageVector)
+                    {
+                        sw.Write(elem.ToString());
+                    }
+                }
+            }
+            else throw new FileNotFoundException();
+        }
+
+        public static BitMatrix[] ReadFromFile(string filePath)
+        {
+            BitMatrix[] messageVector;
+            string[] messages;
+            if (File.Exists(filePath))
+            {
+                messages = File.ReadAllLines(filePath);
+            }
+            else throw new FileNotFoundException();
+
+            messageVector = new BitMatrix[messages.Length];
+
+            for (int i = 0; i < messages.Length; i++)
+            {
+                messageVector[i] = new BitMatrix(messages[i]);
+            }
+
+            return messageVector;
         }
 
         public static BitMatrix GenerateCorrectionMatrix(int dataBits, int bitsToCorrect)
@@ -120,175 +160,4 @@ namespace TelekomunikacjaZadanie1
             return bitMatrix;
         }
     }
-
-    public class BitCorrection
-    {
-        public static BitMatrix oneError8bit = new BitMatrix(new BitArray[4] { new BitArray( new bool[]{true, true, false, true, true, false, true, false, true, false, false, false } ),
-                                                                               new BitArray( new bool[]{true, false, true, true, false, true, true, false, false, true, false, false } ),
-                                                                               new BitArray( new bool[]{false, true, true, true, false, false, false, true, false, false, true, false} ),
-                                                                               new BitArray( new bool[]{false, false, false, false, true, true, true, true, false, false, false, true} ) } );
-
-        public static BitMatrix twoErrors8bit = new BitMatrix(new BitArray[5] { new BitArray( new bool[]{true, false, false, true, true, true, false, true, true, false, false, false, false } ),
-                                                                                new BitArray( new bool[]{true, true, false, true, true, false, true, false, false, true, false, false, false } ),
-                                                                                new BitArray( new bool[]{true, true, true, false, false, true, true, false, false, false, true, false, false } ),
-                                                                                new BitArray( new bool[]{false, true, true, true, false, false, false, true, false, false, false, true, false} ),
-                                                                                new BitArray( new bool[]{false, false, true, false, true, true, true, true, false, false, false, false, true } ) });
-
-        public static BitMatrix threeErrors8bit = new BitMatrix(new BitArray[6] { new BitArray( new bool[]{true, false, false, true, true, true, false, false, true, false, false, false, false, false } ),
-                                                                                  new BitArray( new bool[]{true, true, false, false, true, true, true, true, false, true, false, false, false, false } ),
-                                                                                  new BitArray( new bool[]{true, true, true, true, false, true, false, true, false, false, true, false, false, false } ),
-                                                                                  new BitArray( new bool[]{true, true, true, true, true, false, true, false, false, false, false, true, false, false } ),
-                                                                                  new BitArray( new bool[]{false, true, true, true, true, true, true, true, false, false, false, false, true, false } ),
-                                                                                  new BitArray( new bool[]{false, false, true, false, false, false, true, true, false, false, false, false, false, true } ) });
-
-        public static BitMatrix SetParity(BitMatrix correctionMatrix, BitMatrix message)
-        {
-            BitMatrix output = new BitMatrix(1, correctionMatrix.Columns());
-
-            if (message.Columns() > 1) message.Transpose();
-            for (int i = 0; i < message.Rows(); i++)
-            {
-                output[0, i] = message[i, 0];
-            }
-            output.Transpose();
-            BitMatrix temp = correctionMatrix * output;
-            output.Transpose();
-            for (int i = 0; i < temp.Columns(); i++)
-            {
-                output[0, i + 8] = temp[0, i];
-            }
-            return output;
-        }
-    }
-
-    public class BitMatrix
-    {
-        private BitArray[] bitArrays;
-
-        // BitMatrix Constructor
-        // Must take rows and columns to initialize the tables
-        // To do: add easy initialization method
-        public BitMatrix(int rows, int columns, bool defaultValue = false)
-        {
-            bitArrays = new BitArray[rows];
-            for (int i = 0; i < rows; i++)
-            {
-                bitArrays[i] = new BitArray(columns, defaultValue);
-            }
-        }
-        
-        public BitMatrix(BitArray[] rows)
-        {
-            bitArrays = new BitArray[rows.Length];
-            for (int i = 0; i < rows.Length; i++)
-            {
-                bitArrays[i] = rows[i];
-            }
-        }
-
-        public BitMatrix(string row)
-        {
-            bitArrays = new BitArray[1];
-            char[] message = row.ToCharArray();
-            bitArrays[0] = new BitArray(message.Length);
-            for(int i = 0; i < message.Length; i++)
-            {
-                if (message[i] == '0') bitArrays[0][i] = false;
-                else if (message[i] == '1') bitArrays[0][i] = true;
-                else Console.WriteLine("BYŁO COŚ INNEGO NIŻ 0 ALBO 1, A DOKŁADNIE: " + message[i]);
-            }
-
-        }
-
-        public bool this[int i, int j]
-        {
-            get => bitArrays[i][j];
-            set => bitArrays[i][j] = value;
-        }
-
-        public BitArray GetColumn(int column)
-        {
-            BitArray output = new BitArray(bitArrays.Length);
-            for (int i = 0; i < bitArrays.Length; i++)
-            {
-                output[i] = bitArrays[i][0];
-            }
-
-            return output;
-        }
-
-        public BitArray GetRow(int row)
-        {
-            return bitArrays[row];
-        }
-
-        public int Rows()
-        {
-            return bitArrays.Length;
-        }
-
-        public int Columns()
-        {
-            return bitArrays[0].Length;
-        }
-
-        public void Transpose()
-        {
-            BitArray[] output = new BitArray[bitArrays[0].Length];
-            for (int i = 0; i < bitArrays[0].Length; i++)
-            {
-                output[i] = new BitArray(bitArrays.Length);
-                for (int j = 0; j < bitArrays.Length; j++)
-                {
-                    output[i][j] = bitArrays[j][i];
-                }
-            }
-            bitArrays = output;
-        }
-
-        public static BitMatrix operator*(BitMatrix matrixL, BitMatrix matrixP)
-        {
-            if(matrixL.Columns() != matrixP.Rows())
-            {
-                throw new IncorrectMatrixSize();
-            }
-            BitMatrix output = new BitMatrix(1, matrixL.Rows());
-            for (int i = 0; i < matrixL.Rows(); i++)
-            {
-                for (int j = 0; j < matrixL.Columns(); j++)
-                {
-                    if (matrixL[i, j] && matrixP[j, 0]) output[0, i] = !output[0, i];
-                }
-            }
-            return output;
-        }
-
-        public void Print()
-        {
-            foreach(BitArray arr in bitArrays)
-            {
-                Console.Write("| ");
-                PrintRow(arr);
-                Console.WriteLine("|");
-            }
-        }
-
-        public void PrintRow(int row)
-        {
-            foreach(bool val in bitArrays[row])
-            {
-                Console.Write( val ? "1 " : "0 ");
-            }
-        }
-
-        public void PrintRow(IEnumerable arr)
-        {
-            foreach (bool val in arr)
-            {
-                Console.Write(val ? "1 " : "0 ");
-            }
-        }
-
-    }
-
 }

@@ -9,6 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelekomunikacjaZadanie1Test
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F764A8E9-A81F-479E-9E98-3233EF3068DE}"
 	ProjectSection(SolutionItems) = preProject
+		TelekomunikacjaZadanie1\bin\Debug\EncodedTest.txt = TelekomunikacjaZadanie1\bin\Debug\EncodedTest.txt
 		TelekomunikacjaZadanie1\bin\Debug\test.txt = TelekomunikacjaZadanie1\bin\Debug\test.txt
 	EndProjectSection
 EndProject

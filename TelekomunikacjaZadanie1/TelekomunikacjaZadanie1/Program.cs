@@ -19,6 +19,11 @@ namespace TelekomunikacjaZadanie1
     {
         static void Main(string[] args)
         {
+            BitMatrix aaa = new BitMatrix("1 0 0 1 0 1 0\n" +
+                                          "0 1 1 1 0 0 1\n" +
+                                          "1 0 1 1 0 0 0\n" +
+                                          "0 0 0 1 0 1 0");
+            aaa.Print();
 
             // ================================================
             // === Reading from a file ========================

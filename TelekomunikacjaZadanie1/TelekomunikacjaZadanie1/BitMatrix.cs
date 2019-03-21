@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using TelekomunikacjaZadanie1;
 
 
@@ -28,16 +29,36 @@ public class BitMatrix
         }
     }
 
-    public BitMatrix(string row)
+    public BitMatrix(string matrix, char delimiter = '\n')
     {
-        bitArrays = new BitArray[1];
-        char[] message = row.ToCharArray();
-        bitArrays[0] = new BitArray(message.Length);
+        List<bool> tempRow = new List<bool>();
+        List<List<bool>> tempMatrix = new List<List<bool>>();
+        //bitArrays = new BitArray[1];
+        char[] message = matrix.ToCharArray();
+        //bitArrays[0] = new BitArray(message.Length);
+
         for (int i = 0; i < message.Length; i++)
         {
-            if (message[i] == '0') bitArrays[0][i] = false;
-            else if (message[i] == '1') bitArrays[0][i] = true;
-            else Console.WriteLine("BYŁO COŚ INNEGO NIŻ 0 ALBO 1, A DOKŁADNIE: " + message[i]);
+            if (message[i] == ' ')
+            {
+                continue;
+            }
+            else if (message[i] == delimiter)
+            {
+                tempMatrix.Add(tempRow);
+                tempRow = new List<bool>();
+            }
+            else if (message[i] == '0') tempRow.Add(false);
+            else if (message[i] == '1') tempRow.Add(true);
+            else throw new FormatException();
+        }
+        tempMatrix.Add(tempRow);
+        bitArrays = new BitArray[tempMatrix.Count];
+        for (int i = 0; i < tempMatrix.Count; i++)
+        {
+            bool[] tempBool = new bool[tempMatrix[i].Count];
+            tempMatrix[i].CopyTo(tempBool);
+            bitArrays[i] = new BitArray(tempBool);
         }
 
     }

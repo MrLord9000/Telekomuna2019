@@ -113,6 +113,29 @@ public class BitMatrix
         bitArrays = output;
     }
 
+    public BitMatrix Add(BitMatrix operand)
+    {
+        if (operand.Columns() != Columns() || operand.Rows() != Rows())
+            throw new IncorrectMatrixSize();
+
+        BitMatrix output = new BitMatrix(Rows(), Columns());
+        for (int i = 0; i < Rows(); i++)
+        {
+            for (int j = 0; j < Columns(); j++)
+            {
+                if(bitArrays[i][j] ^ operand[i, j])
+                {
+                    output[i, j] = true;
+                }
+                else
+                {
+                    output[i, j] = false;
+                }
+            }
+        }
+        return output;
+    }
+
     public static BitMatrix operator *(BitMatrix matrixL, BitMatrix matrixP)
     {
         if (matrixL.Columns() != matrixP.Rows())

@@ -71,7 +71,7 @@ namespace TelekomunikacjaZadanie1
             //}
 
             //BitCorrection.CheckErrors(BitCorrection.oneError8bit, errorVector[0]);
-            BitCorrection.CheckErrors(BitCorrection.twoErrors8bit, errorVector[0]);
+            BitCorrection.CheckErrors(BitCorrection.twoErrors8bit, errorVector[0], 2);
 
         }
 

@@ -1,26 +1,22 @@
 ﻿using System;
-using System.Collections;
-using TelekomunikacjaZadanie1;
+using System.Collections.Generic;
 
 public class BitCorrection
 {
-    public static BitMatrix oneError8bit = new BitMatrix(new BitArray[4] { new BitArray( new bool[]{true, true, false, true, true, false, true, false, true, false, false, false } ),
-                                                                               new BitArray( new bool[]{true, false, true, true, false, true, true, false, false, true, false, false } ),
-                                                                               new BitArray( new bool[]{false, true, true, true, false, false, false, true, false, false, true, false} ),
-                                                                               new BitArray( new bool[]{false, false, false, false, true, true, true, true, false, false, false, true} ) });
+    public static BitMatrix oneError8bit = new BitMatrix(   "1 1 0 1 1 0 1 0    1 0 0 0\n" +
+                                                            "1 0 1 1 0 1 1 0    0 1 0 0\n" +
+                                                            "0 1 1 1 0 0 0 1    0 0 1 0\n" +
+                                                            "0 0 0 0 1 1 1 1    0 0 0 1");
 
-    public static BitMatrix twoErrors8bit = new BitMatrix(new BitArray[5] { new BitArray( new bool[]{true, false, false, true, true, true, true, true, true, false, false, false, false } ),
-                                                                                new BitArray( new bool[]{true, true, false, true, true, false, false, false, false, true, false, false, false } ),
-                                                                                new BitArray( new bool[]{true, true, true, false, false, true, true, false, false, false, true, false, false } ),
-                                                                                new BitArray( new bool[]{false, true, true, true, false, false, true, true, false, false, false, true, false} ),
-                                                                                new BitArray( new bool[]{false, false, true, false, true, true, false, true, false, false, false, false, true } ) });
-
-    public static BitMatrix threeErrors8bit = new BitMatrix(new BitArray[6] { new BitArray( new bool[]{true, false, false, true, true, true, false, false, true, false, false, false, false, false } ),
-                                                                                  new BitArray( new bool[]{true, true, false, false, true, true, true, true, false, true, false, false, false, false } ),
-                                                                                  new BitArray( new bool[]{true, true, true, true, false, true, false, true, false, false, true, false, false, false } ),
-                                                                                  new BitArray( new bool[]{true, true, true, true, true, false, true, false, false, false, false, true, false, false } ),
-                                                                                  new BitArray( new bool[]{false, true, true, true, true, true, true, true, false, false, false, false, true, false } ),
-                                                                                  new BitArray( new bool[]{false, false, true, false, false, false, true, true, false, false, false, false, false, true } ) });
+    public static BitMatrix twoErrors8bit = new BitMatrix(  "0 0 1 1 0 0 0 1    1 0 0 0 0 0 0 0 0\n" +
+                                                            "1 1 1 1 0 1 0 0	0 1 0 0 0 0 0 0 0\n" +
+                                                            "1 1 0 0 1 0 0 1	0 0 1 0 0 0 0 0 0\n" +
+                                                            "0 0 1 0 1 0 1 0	0 0 0 1 0 0 0 0 0\n" +
+                                                            "1 0 1 1 1 1 0 1	0 0 0 0 1 0 0 0 0\n" +
+                                                            "0 1 0 1 1 1 1 1	0 0 0 0 0 1 0 0 0\n" +
+                                                            "1 1 1 1 1 1 1 0	0 0 0 0 0 0 1 0 0\n" +
+                                                            "0 0 1 0 1 1 0 1	0 0 0 0 0 0 0 1 0\n" +
+                                                            "0 1 0 1 1 0 1 0	0 0 0 0 0 0 0 0 1");
 
     public static BitMatrix SetParity(BitMatrix correctionMatrix, BitMatrix message)
     {
@@ -41,57 +37,71 @@ public class BitCorrection
         return output;
     }
 
-    public static void CheckErrors(BitMatrix correctionMatrix, BitMatrix errorVector, int maxErrors = 1)
+    public static List<int> CheckErrors(BitMatrix correctionMatrix, BitMatrix errorVector, int maxErrors = 1)
     {
-        switch(maxErrors)
-        {
-            case 1:
-                for (int i = 0; i < correctionMatrix.Columns(); i++)
-                {
-                    if (correctionMatrix.GetColumnAsRow(i).Equals(errorVector))
-                    {
-                        Console.WriteLine("Error detected in column " + i);
-                    }
-                }
-                break;
-            case 2:
-                for (int i = 0; i < correctionMatrix.Columns(); i++)
-                {
-                    for (int j = 0; j < correctionMatrix.Columns(); j++)
-                    {
-                        if (i == j)
-                        {
-                            if (j < correctionMatrix.Columns() - 1)
-                            {
-                                j++;
-                            }
-                            else break;
-                        }
-                        BitMatrix tempMatrix = correctionMatrix.GetColumnAsRow(i).Add(correctionMatrix.GetColumnAsRow(j));
-                        Console.WriteLine("Wynik dodawania [" + i + ", " + j + "] ");
-                        tempMatrix.Print();
-                        if(tempMatrix.Equals(errorVector))
-                        {
-                            Console.WriteLine("Two errors detected at positions " + i + " and " + j);
-                        }
-                    }
-                }
-                break;
-            case 3:
+        List<int> errorPositions = new List<int>();
 
-                break;
-        }
-    }
-
-    public static void CheckCorrectionMatrix(BitMatrix correctionMatrix, int maxErrors)
-    {
-        for (int i = 0; i < correctionMatrix.Columns(); i++)
+        if(maxErrors == 1 || maxErrors == 2)
         {
-            for (int j = 0; j < correctionMatrix.Columns(); j++)
+            for (int i = 0; i < correctionMatrix.Columns(); i++)
             {
-
+                if (correctionMatrix.GetColumnAsRow(i).Equals(errorVector))
+                {
+                    // If algorithm detects an error here, there should be no more errors in the message, or there is too many errors.
+                    Console.WriteLine("Error detected in column " + i);
+                    errorPositions.Add(i);
+                }
             }
         }
+        if(maxErrors == 2)
+        {
+            BitMatrix sumVector;
+            for (int i = 0; i < correctionMatrix.Columns(); i++)
+            {
+                for (int j = i + 1; j < correctionMatrix.Columns(); j++)
+                {
+                    sumVector = correctionMatrix.GetColumnAsRow(i).Add(correctionMatrix.GetColumnAsRow(j));
+                    if (sumVector.Equals(errorVector))
+                    { 
+                        Console.WriteLine("Error detected in column " + i + " and " + j);
+                        errorPositions.Add(i);
+                        errorPositions.Add(j);
+                    }
+                }
+            }
+        }
+        else
+        {
+            throw new ArgumentException();
+        }
+
+        return errorPositions;
+    }
+
+    public static void CheckCorrectionMatrix(BitMatrix correctionMatrix)
+    {
+        int counter = 0;
+        List<BitMatrix> sumVector = new List<BitMatrix>();
+        for (int i = 0; i < correctionMatrix.Columns(); i++)
+        {
+            for (int j = i + 1; j < correctionMatrix.Columns(); j++)
+            {
+                sumVector.Add(correctionMatrix.GetColumnAsRow(i).Add(correctionMatrix.GetColumnAsRow(j)));
+            }
+        }
+        for (int i = 0; i < sumVector.Count; i++)
+        {
+            for (int j = i + 1; j < sumVector.Count; j++)
+            {
+                if(sumVector[i].Equals(sumVector[j]))
+                {
+                    Console.WriteLine("Suma kolumn " + i + " i " + j + " jest taka sama!");
+                    sumVector[i].Print();
+                    counter++;
+                }
+            }
+        }
+        Console.WriteLine("W sumie powtórzyło się " + counter + " sum kolumn.");
     }
 }
 

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using TelekomunikacjaZadanie1;
 
 
 public class BitMatrix
@@ -39,7 +38,7 @@ public class BitMatrix
 
         for (int i = 0; i < message.Length; i++)
         {
-            if (message[i] == ' ')
+            if (message[i] == ' ' || message[i] == '\t')
             {
                 continue;
             }

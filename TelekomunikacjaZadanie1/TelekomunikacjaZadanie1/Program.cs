@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections;
+using System.Diagnostics;
 using System.IO;
 
 /* ===== Notes and details ==============================================================================
@@ -11,6 +11,8 @@ using System.IO;
  * and correction matrix.
  * Warning! Overloaded operator * for the time being is implemented only for such operations and will not work on some
  * custom matrices.
+ * 
+ * Todo: Add choice between 2 and 1 error correction
  */
 
 namespace TelekomunikacjaZadanie1
@@ -19,64 +21,124 @@ namespace TelekomunikacjaZadanie1
     {
         static void Main(string[] args)
         {
-            BitMatrix aaa = new BitMatrix("1 0 0 1 0 1 0\n" +
-                                          "0 1 1 1 0 0 1\n" +
-                                          "1 0 1 1 0 0 0\n" +
-                                          "0 0 0 1 0 1 0");
-            aaa.Print();
-
-            // ================================================
-            // === Reading from a file ========================
-
-            BitMatrix[] bitMatrices = ReadFromFile("test.txt");
-
-
-            // ================================================
-            // === Setting parity for one error correction ====
-
-            BitMatrix[] encodedWords = new BitMatrix[bitMatrices.Length];
-            for (int i = 0; i < bitMatrices.Length; i++)
+            while (true)
             {
-                //encodedWords[i] = BitCorrection.SetParity(BitCorrection.oneError8bit, bitMatrices[i]);
-                encodedWords[i] = BitCorrection.SetParity(BitCorrection.twoErrors8bit, bitMatrices[i]);
+                // ================================================
+                // ==== Main Menu =================================
+
+                Console.Clear();
+                Console.WriteLine("====================================================================");
+                Console.WriteLine("Welcome to bit correction program by Filip Mazurek & Adrianna Dudek!");
+                Console.WriteLine("Select your choice:");
+                Console.WriteLine("A - Encode 8 bit messages for single error correction");
+                Console.WriteLine("B - Encode 8 bit messages for double error correction");
+                Console.WriteLine("Esc - Exit program");
+
+                ConsoleKeyInfo ch01 = Console.ReadKey(true);
+                if (ch01.Key == ConsoleKey.Escape) break;
+
+                // ================================================
+                // === Reading from a file ========================
+
+                Console.WriteLine("====================================================================");
+                Console.WriteLine("Choose a file path to read from or press Enter to use default");
+                Console.WriteLine("(Input.txt is the default file)");
+                Console.Write("File path: ");
+
+                string inputPath = Console.ReadLine();
+                if (inputPath == "") inputPath = "Input.txt";
+
+                BitMatrix[] bitMatrices;
+
+                try
+                {
+                    bitMatrices = ReadFromFile(inputPath);
+                }
+                catch(FileNotFoundException)
+                {
+                    Console.WriteLine("File not found. Please insert correct file path.");
+                    Console.WriteLine("Press any key to continue...");
+                    Console.ReadKey(true);
+                    continue;
+                }
+
+                // ================================================
+                // === Setting parity for one error correction ====
+
+                Console.WriteLine("====================================================================");
+                Console.WriteLine("Encoding " + bitMatrices.Length + " messages with parity bits...");
+
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+
+                BitMatrix correctionMatrix;
+                int errorsToCorrect;
+                if (ch01.Key == ConsoleKey.A)
+                {
+                    correctionMatrix = BitCorrection.oneError8bit;
+                    errorsToCorrect = 1;
+                }
+                else if (ch01.Key == ConsoleKey.B)
+                {
+                    correctionMatrix = BitCorrection.twoErrors8bit;
+                    errorsToCorrect = 2;
+                }
+                else throw new Exception();
+
+                BitMatrix[] encodedWords = new BitMatrix[bitMatrices.Length];
+                for (int i = 0; i < bitMatrices.Length; i++)
+                {
+                    encodedWords[i] = BitCorrection.SetParity(correctionMatrix, bitMatrices[i]);
+                }
+                stopwatch.Stop();
+                Console.WriteLine("Done!");
+                Console.WriteLine("Completed in " + stopwatch.Elapsed);
+
+                // ================================================
+                // === Saving encoded words to file ===============
+
+                Console.WriteLine("====================================================================");
+                Console.WriteLine("Saving words to file. Insert file path or press Enter for default");
+                Console.WriteLine("(Encoded.txt is the default file)");
+                Console.Write("File path: ");
+
+                string outputPath = Console.ReadLine();
+                if (outputPath == "") outputPath = "Encoded.txt";
+
+                WriteToFile(outputPath, encodedWords);
+
+                Console.WriteLine("====================================================================");
+                Console.WriteLine("To simulate transmission errors, please modify " + outputPath + " file");
+                Console.WriteLine("Press any key to continue...");
+                Console.ReadKey(true);
+
+                // ================================================
+                // === Reading from file and correcting errors ====
+
+                Console.WriteLine("Reading from " + outputPath + " and checking errors...");
+
+                stopwatch.Reset();
+                stopwatch.Start();
+
+                BitMatrix[] transmissedWords = ReadFromFile(outputPath);
+                BitMatrix[] errorVector = new BitMatrix[transmissedWords.Length];
+
+                for (int i = 0; i < transmissedWords.Length; i++)
+                {
+                    transmissedWords[i].Transpose();
+                    errorVector[i] = correctionMatrix * transmissedWords[i];
+                    transmissedWords[i].Transpose();
+                }
+
+                foreach (BitMatrix errVec in errorVector)
+                {
+                    BitCorrection.CheckErrors(BitCorrection.twoErrors8bit, errVec, errorsToCorrect);
+                }
+
+                stopwatch.Stop();
+                Console.WriteLine("Done. Completed in " + stopwatch.Elapsed);
+                Console.ReadKey(true);
             }
-
-            // ================================================
-            // === Saving encoded words to file ===============
-
-            WriteToFile("EncodedTest.txt", encodedWords);
-
-            Console.WriteLine("To simulate transmission errors, please modify EncodedTest.txt file");
-            Console.WriteLine("Press any key to continue...");
-            Console.ReadKey();
-            Console.WriteLine();
-
-            // ================================================
-            // === Reading from file and correcting errors ====
-
-            BitMatrix[] transmissedWords = ReadFromFile("EncodedTest.txt");
-            BitMatrix[] errorVector = new BitMatrix[transmissedWords.Length];
-
-            for (int i = 0; i < transmissedWords.Length; i++)
-            {
-                transmissedWords[i].Transpose();
-                //errorVector[i] = BitCorrection.oneError8bit * transmissedWords[i];
-                errorVector[i] = BitCorrection.twoErrors8bit * transmissedWords[i];
-                transmissedWords[i].Transpose();
-            }
-
-            foreach (BitMatrix errVec in errorVector)
-            {
-                errVec.Print();
-            }
-
-            //for (int i = 0; i < BitCorrection.oneError8bit.Columns(); i++)
-            //{
-            //    BitCorrection.oneError8bit.GetColumnAsRow(i).Print();
-            //}
-
-            //BitCorrection.CheckErrors(BitCorrection.oneError8bit, errorVector[0]);
-            BitCorrection.CheckErrors(BitCorrection.twoErrors8bit, errorVector[0], 2);
 
         }
 

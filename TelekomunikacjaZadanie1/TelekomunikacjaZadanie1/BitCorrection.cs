@@ -37,19 +37,24 @@ public class BitCorrection
         return output;
     }
 
-    public static List<int> CheckErrors(BitMatrix correctionMatrix, BitMatrix errorVector, int maxErrors = 1)
+    public static List<int> CheckErrors(BitMatrix correctionMatrix, int wordId, BitMatrix errorVector, int maxErrors = 1)
     {
         List<int> errorPositions = new List<int>();
-
+        int counter = 0;
         if(maxErrors == 1 || maxErrors == 2)
         {
             for (int i = 0; i < correctionMatrix.Columns(); i++)
             {
-                if (correctionMatrix.GetColumnAsRow(i).Equals(errorVector))
+                if (correctionMatrix.GetColumnAsRow(i).Equals(errorVector) && counter < maxErrors)
                 {
                     // If algorithm detects an error here, there should be no more errors in the message, or there is too many errors.
-                    Console.WriteLine("Error detected in column " + i);
+                    Console.WriteLine("In word " + wordId + " detected error in column " + i);
                     errorPositions.Add(i);
+                    counter++;
+                }
+                else if (correctionMatrix.GetColumnAsRow(i).Equals(errorVector) && counter >= maxErrors)
+                {
+                    Console.WriteLine("Too many errors detected in word " + wordId + ". Correction will be incorrect.");
                 }
             }
         }
@@ -61,21 +66,31 @@ public class BitCorrection
                 for (int j = i + 1; j < correctionMatrix.Columns(); j++)
                 {
                     sumVector = correctionMatrix.GetColumnAsRow(i).Add(correctionMatrix.GetColumnAsRow(j));
-                    if (sumVector.Equals(errorVector))
+                    if (sumVector.Equals(errorVector) && counter < maxErrors)
                     { 
-                        Console.WriteLine("Error detected in column " + i + " and " + j);
+                        Console.WriteLine("In word " + wordId + " detected error in column " + i + " and " + j);
                         errorPositions.Add(i);
                         errorPositions.Add(j);
+                        counter++;
+                    }
+                    else if (sumVector.Equals(errorVector) && counter >= maxErrors)
+                    {
+                        Console.WriteLine("Too many errors detected in word " + wordId + ". Correction will be incorrect.");
                     }
                 }
             }
         }
-        else
-        {
-            throw new ArgumentException();
-        }
+
 
         return errorPositions;
+    }
+
+    public static void CorrectErrors(BitMatrix matrix, List<int> errPos)
+    {
+        foreach(int err in errPos)
+        {
+            matrix[0, err] = !matrix[0, err];
+        }
     }
 
     public static void CheckCorrectionMatrix(BitMatrix correctionMatrix)

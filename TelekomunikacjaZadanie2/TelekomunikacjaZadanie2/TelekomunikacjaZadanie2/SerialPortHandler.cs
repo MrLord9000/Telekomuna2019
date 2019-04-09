@@ -6,17 +6,17 @@ namespace TelekomunikacjaZadanie2
 {
     class SerialPortHandler
     {
-        SerialPort _mainSerialPort;
+        public SerialPort _mainSerialPort { get; }
 
         /// <summary>
         /// Main constructor responsible for serial port initialization. Set private to prevent from misuse, please use initializer methods to create handler objects.
         /// </summary>
-        private SerialPortHandler(String portName, int baudRate, Parity parity, int dataBits, StopBits stopBits, Handshake portHandshake = Handshake.None)
+        private SerialPortHandler(string portName, int baudRate, Parity parity, int dataBits, StopBits stopBits, Handshake portHandshake = Handshake.None)
         {
             _mainSerialPort = new SerialPort(portName, baudRate, parity, dataBits, stopBits);
         }
 
-        public static SerialPortHandler InitializeSerialSender()
+        public static SerialPortHandler InitializeSerialPort()
         {
             string portName;
             int baudRate;
@@ -25,7 +25,7 @@ namespace TelekomunikacjaZadanie2
             StopBits stopBits;
             Console.WriteLine(" ++++ |-------------------------------------------------------| ++++");
             Console.WriteLine(" /\\/\\ | Serial Port Initializer Invoked! Prepare for takeoff! | /\\/\\");
-            Console.WriteLine(" \\/\\/ | Initializing serial port sender...                    | \\/\\/");
+            Console.WriteLine(" \\/\\/ | Initializing serial port ...                          | \\/\\/");
             Console.WriteLine(" ++++ |-------------------------------------------------------| ++++");
 
             string[] portNames = SerialPort.GetPortNames();
@@ -39,6 +39,15 @@ namespace TelekomunikacjaZadanie2
                 baudRate = SmartConsoleInput.ListSelect<int>(" <  > Available transmission rates: ", baudRatesAvailable,
                                                              ">< Make a selection, then press enter ><");
                 Console.WriteLine();
+                Console.WriteLine(" $$$ Hit 'c' to auto configure selected port for XModem communication. $$$");
+                Console.WriteLine(" $$$ Press any key to continue...                                      $$$");
+                ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+
+                if (keyInfo.Key == ConsoleKey.C)
+                {
+                    Console.WriteLine(" $$$ Auto-config complete!                                             $$$");
+                    return new SerialPortHandler(portName, baudRate, Parity.None, 8, StopBits.One);
+                }
 
                 if (baudRate > 0)
                 {
@@ -59,7 +68,6 @@ namespace TelekomunikacjaZadanie2
                             {
                                 stopBits = (StopBits)stopBitsSelection;
 
-
                                 return new SerialPortHandler(portName, baudRate, parity, dataBits, stopBits);
                                     
 
@@ -75,24 +83,7 @@ namespace TelekomunikacjaZadanie2
             else throw new IndexOutOfRangeException();
         }
 
-        public static SerialPortHandler InitializeSerialReceiver()
-        {
-            Console.WriteLine("++++ |-------------------------------------------------------| ++++");
-            Console.WriteLine("/\\/\\ | Serial Port Initializer Invoked! Prepare for takeoff! | /\\/\\");
-            Console.WriteLine("\\/\\/ | Initializing serial port reciever...                  | \\/\\/");
-            Console.WriteLine("++++ |-------------------------------------------------------| ++++");
 
-            string[] portNames = SerialPort.GetPortNames();
-            string portName = SmartConsoleInput.ListSelect<string>(" <  > Available ports: ", portNames,
-                                                                   ">< Make a selection, then press enter ><");
-
-            if (portName != null)
-            {
-
-            }
-
-            return null;
-        }
 
     }
 }

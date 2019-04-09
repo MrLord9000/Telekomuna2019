@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.IO;
 
 /* ===== Notes and details ==============================================================================
@@ -130,14 +131,38 @@ namespace TelekomunikacjaZadanie1
                     transmissedWords[i].Transpose();
                 }
 
-                foreach (BitMatrix errVec in errorVector)
+                List<List<int>> errorPositions = new List<List<int>>();
+                for (int i = 0; i < errorVector.Length; i++)
                 {
-                    BitCorrection.CheckErrors(BitCorrection.twoErrors8bit, errVec, errorsToCorrect);
+                    errorPositions.Add(BitCorrection.CheckErrors(correctionMatrix, i, errorVector[i], errorsToCorrect));
+                }
+
+                for (int i = 0; i < transmissedWords.Length; i++)
+                {
+                    BitCorrection.CorrectErrors(transmissedWords[i], errorPositions[i]);
                 }
 
                 stopwatch.Stop();
                 Console.WriteLine("Done. Completed in " + stopwatch.Elapsed);
+                Console.WriteLine("Press any key to continue...");
                 Console.ReadKey(true);
+
+                // ================================================
+                // === Saving corrected words to file ===============
+
+                Console.WriteLine("===========================================================================");
+                Console.WriteLine("Saving corrected words to file. Insert file path or press Enter for default");
+                Console.WriteLine("(Output.txt is the default file)");
+                Console.Write("File path: ");
+
+                outputPath = Console.ReadLine();
+                if (outputPath == "") outputPath = "Output.txt";
+
+                WriteToFile(outputPath, transmissedWords);
+
+                Console.WriteLine("Press any key to continue...");
+                Console.ReadKey(true);
+
             }
 
         }

@@ -11,8 +11,8 @@ namespace TelekomunikacjaZadanie2
     {
         static void Main(string[] args)
         {
-            SerialPortHandler portHandler = SerialPortHandler.InitializeSerialSender();
-
+            SerialPortHandler portHandler = SerialPortHandler.InitializeSerialPort();
+            XModem.TransmitData(portHandler);
         }
 
  

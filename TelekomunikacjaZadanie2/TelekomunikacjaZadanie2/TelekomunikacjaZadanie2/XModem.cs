@@ -22,7 +22,8 @@ namespace TelekomunikacjaZadanie2
         EOT = 4,
         ACK = 6,
         NAK = 21,
-        CAN = 24
+        CAN = 24,
+        SUB = 26
     }
 
     class XModem
@@ -31,7 +32,7 @@ namespace TelekomunikacjaZadanie2
         private static SerialPort port;
         private static byte seq;
 
-        public static void TransmitData(SerialPortHandler handler)
+        public static void TransmitData(SerialPortHandler handler, string filePath)
         {
             // Setting the reference to serial port object
             port = handler._mainSerialPort;
@@ -49,13 +50,24 @@ namespace TelekomunikacjaZadanie2
                 if(WaitForSym(Sym.NAK, 10))
                 {
                     Console.WriteLine("Received NAK");
+                    FileIO.OpenFile(filePath);
+                    while (FileIO.EndOfFile == false)
+                    {
+                        TransmitPacket();
+                    }
+                    PortWriteByte((byte)Sym.EOT);
+                    Console.WriteLine("EOT transmitted.");
+                    if (WaitForSym(Sym.ACK, 10))
+                    {
+                        Console.WriteLine("Transmission succesful!");
+                    }
                 }
             }
             catch(TimeoutException e)
             {
                 Console.Error.WriteLine(e.Message);
             }
-}
+        }
 
         public static void ReceiveData(SerialPortHandler handler)
         {
@@ -74,7 +86,7 @@ namespace TelekomunikacjaZadanie2
                     return true;
                 if (receivedByte == (byte)Sym.CAN)
                     throw new OperationCanceledException();
-            }
+        }
             catch (TimeoutException)
             {
                 Console.Error.WriteLine("Wait for " + symbol.ToString() + " timeout!");
@@ -83,17 +95,35 @@ namespace TelekomunikacjaZadanie2
             throw new Exception("Wait for symbol error.");
         }
 
-        private static bool transmitPacket()
+        private static void TransmitPacket()
         {
             PortWriteByte((byte)Sym.SOH);   // Sending StartOfHeader symbol for packet initialization
+            Console.WriteLine("SOH");
             PortWriteByte(seq);             // Sending sequence number
-            seq++;      // Increasing the sequence number
+            Console.WriteLine("seq: " + seq);
+            seq++;                          // Increasing the sequence number
             PortWriteByte((byte)(255 - (255 & seq)));   // Calculating and sending the complement of seq
+            Console.WriteLine("cmpl: " + (byte)(255 -  seq));
             // Sending 128 bytes of data
-            for (int i = 0; i < 128; i++)
+            byte[] temp = FileIO.Read(128, "inputData.txt");
+            Console.WriteLine("temp size: " + temp.Length);
+            port.Write(temp, 0, 128);
+            // Calculating and sending checksum
+            PortWriteByte(Checksum(temp));
+            if (WaitForSym(Sym.NAK, 1))
             {
-
+                Console.WriteLine("Bad checksum!");
             }
+        }
+
+        private static byte Checksum(byte[] data)
+        {
+            byte output = 0;
+            foreach(byte elem in data)
+            {
+                output += elem;
+            }
+            return output;
         }
 
         private static void PortWriteByte(byte val)

@@ -12,7 +12,7 @@ namespace TelekomunikacjaZadanie2
         static void Main(string[] args)
         {
             SerialPortHandler portHandler = SerialPortHandler.InitializeSerialPort();
-            XModem.TransmitData(portHandler);
+            XModem.TransmitData(portHandler, "inputData.txt");
         }
 
  

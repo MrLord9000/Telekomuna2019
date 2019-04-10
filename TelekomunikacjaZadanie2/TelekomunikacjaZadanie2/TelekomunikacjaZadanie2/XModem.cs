@@ -31,13 +31,17 @@ namespace TelekomunikacjaZadanie2
         // Main port to be used for communication
         private static SerialPort port;
         private static byte seq;
+        private static byte[] transmitData;
+        private static long offset;
 
         public static void TransmitData(SerialPortHandler handler, string filePath)
         {
             // Setting the reference to serial port object
             port = handler._mainSerialPort;
             // Pretty important to make reset the sequence number!
-            seq = 0;
+            seq = 1;
+            // Read the data to be transmitted and store it in an array
+            transmitData = FileIO.Read("inputData.txt");
 
             // Open the port if not done already.
             if(!port.IsOpen)
@@ -47,14 +51,17 @@ namespace TelekomunikacjaZadanie2
 
             try
             {
+                // First wait for NAK symbol from receiver to begin transmission
                 if(WaitForSym(Sym.NAK, 10))
                 {
                     Console.WriteLine("Received NAK");
-                    FileIO.OpenFile(filePath);
-                    while (FileIO.EndOfFile == false)
+                    // Reset the data byte offset and start transmission
+                    offset = 0;
+                    while(offset < transmitData.Length)
                     {
                         TransmitPacket();
                     }
+
                     PortWriteByte((byte)Sym.EOT);
                     Console.WriteLine("EOT transmitted.");
                     if (WaitForSym(Sym.ACK, 10))
@@ -63,6 +70,7 @@ namespace TelekomunikacjaZadanie2
                     }
                 }
             }
+            // If there is timeout in the WaitForSym - print out the message
             catch(TimeoutException e)
             {
                 Console.Error.WriteLine(e.Message);
@@ -86,7 +94,7 @@ namespace TelekomunikacjaZadanie2
                     return true;
                 if (receivedByte == (byte)Sym.CAN)
                     throw new OperationCanceledException();
-        }
+            }
             catch (TimeoutException)
             {
                 Console.Error.WriteLine("Wait for " + symbol.ToString() + " timeout!");
@@ -95,25 +103,49 @@ namespace TelekomunikacjaZadanie2
             throw new Exception("Wait for symbol error.");
         }
 
+        private static Sym WaitForAny(int timeoutSeconds)
+        {
+            port.ReadTimeout = timeoutSeconds * 1000;
+            byte receivedByte = (byte)port.ReadByte();
+            return (Sym)receivedByte;
+        }
+
+        /// <summary>
+        /// Function used for packet transmission in xmodem protocol
+        /// </summary>
         private static void TransmitPacket()
         {
             PortWriteByte((byte)Sym.SOH);   // Sending StartOfHeader symbol for packet initialization
-            Console.WriteLine("SOH");
+                    Console.WriteLine("SOH");
             PortWriteByte(seq);             // Sending sequence number
-            Console.WriteLine("seq: " + seq);
-            seq++;                          // Increasing the sequence number
+                    Console.WriteLine("seq: " + seq);
             PortWriteByte((byte)(255 - (255 & seq)));   // Calculating and sending the complement of seq
-            Console.WriteLine("cmpl: " + (byte)(255 -  seq));
+                    Console.WriteLine("cmpl: " + (byte)(255 -  seq));
+            seq++;                          // Increasing the sequence number
+
+            // Copying 128 bytes of data to transmit
+            // If there is any underflow, the following bytes will be left null (0)
+            byte[] temp = new byte[128];
+            Array.Copy(transmitData, offset, temp, 0, transmitData.Length >= 128 ? 128 : transmitData.Length);
+            offset += 128;
+
+            DisplayData(temp);
+
             // Sending 128 bytes of data
-            byte[] temp = FileIO.Read(128, "inputData.txt");
-            Console.WriteLine("temp size: " + temp.Length);
             port.Write(temp, 0, 128);
             // Calculating and sending checksum
             PortWriteByte(Checksum(temp));
-            if (WaitForSym(Sym.NAK, 1))
+
+            // Wait for accept from the receiver
+            Sym result = WaitForAny(10);
+            if (result == Sym.NAK)
             {
+                // If cheksum was incorrect - transmit packet once again
                 Console.WriteLine("Bad checksum!");
+                offset -= 128;
             }
+            else if (result != Sym.ACK)
+                throw new InvalidOperationException();
         }
 
         private static byte Checksum(byte[] data)
@@ -129,6 +161,16 @@ namespace TelekomunikacjaZadanie2
         private static void PortWriteByte(byte val)
         {
             port.Write(new byte[]{ val }, 0, 1);
+        }
+
+        private static void DisplayData(byte[] data)
+        {
+            Console.WriteLine("Displaying " + data.Length + " bytes of data:");
+            foreach(byte elem in data)
+            {
+                if (elem != 0) Console.Write((char)elem);
+                else Console.Write(".");
+            }
         }
     }
 }

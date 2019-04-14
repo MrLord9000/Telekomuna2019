@@ -57,8 +57,11 @@ namespace TelekomunikacjaZadanie2
                     Console.WriteLine("Received NAK");
                     // Reset the data byte offset and start transmission
                     offset = 0;
+                    Console.WriteLine("transmitData length: " + transmitData.Length);
                     while(offset < transmitData.Length)
                     {
+                        Console.WriteLine("offset: " + offset);
+                        
                         TransmitPacket();
                     }
 
@@ -66,7 +69,7 @@ namespace TelekomunikacjaZadanie2
                     Console.WriteLine("EOT transmitted.");
                     if (WaitForSym(Sym.ACK, 10))
                     {
-                        Console.WriteLine("Transmission succesful!");
+                        Console.WriteLine("Succesfully sent " + (offset / 128 + 1) + " packets!");
                     }
                 }
             }
@@ -116,20 +119,21 @@ namespace TelekomunikacjaZadanie2
         private static void TransmitPacket()
         {
             PortWriteByte((byte)Sym.SOH);   // Sending StartOfHeader symbol for packet initialization
-                    Console.WriteLine("SOH");
+                                            //Console.WriteLine("SOH");
+            if (seq == 0) seq = 1;
             PortWriteByte(seq);             // Sending sequence number
-                    Console.WriteLine("seq: " + seq);
+                    //Console.WriteLine("seq: " + seq);
             PortWriteByte((byte)(255 - (255 & seq)));   // Calculating and sending the complement of seq
-                    Console.WriteLine("cmpl: " + (byte)(255 -  seq));
+                    //Console.WriteLine("cmpl: " + (byte)(255 -  seq));
             seq++;                          // Increasing the sequence number
 
             // Copying 128 bytes of data to transmit
             // If there is any underflow, the following bytes will be left null (0)
             byte[] temp = new byte[128];
-            Array.Copy(transmitData, offset, temp, 0, transmitData.Length >= 128 ? 128 : transmitData.Length);
+            Array.Copy(transmitData, offset, temp, 0, transmitData.Length - offset >= 128 ? 128 : transmitData.Length - offset);
             offset += 128;
 
-            DisplayData(temp);
+            //DisplayData(temp);
 
             // Sending 128 bytes of data
             port.Write(temp, 0, 128);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO.Ports;
+using System.IO;
 
 // ========================================================
 // Transmission symbols table for easy reference
@@ -107,12 +108,30 @@ namespace TelekomunikacjaZadanie2
                 do
                 {
                     status = ReceivePacket(10);
+                    if(status != Sym.EOT)
+                    {
                         Console.WriteLine("Sent symbol: " + status.ToString());
-                    PortWriteByte((byte)status);
+                        PortWriteByte((byte)status);
+                    }
 
                 } while (status != Sym.EOT);
 
                 PortWriteByte((byte)Sym.ACK);
+
+                //Save data to file
+                using (StreamWriter file = new StreamWriter(filePath))
+                {
+                    char buffer;
+                    do
+                    {
+                        buffer = (char)receivedData.Dequeue();
+                        if(buffer != 0)
+                        {
+                            file.Write(buffer);
+                        }
+                    } while (receivedData.Count > 0);
+                }
+
             }
             catch (TimeoutException e)
             {
@@ -190,7 +209,8 @@ namespace TelekomunikacjaZadanie2
                 }
                 else if (byteBuffer == (byte)Sym.EOT)
                 {
-                    return Sym.ACK;
+                    Console.WriteLine("Received EOT, cleaning up...");
+                    return Sym.EOT;
                 }
             }
             else first = false;
@@ -213,6 +233,9 @@ namespace TelekomunikacjaZadanie2
                     {
                         dataBuffer[i] = (byte)port.ReadByte();
                     }
+
+                        Console.WriteLine("Received data:");
+                        DisplayData(dataBuffer);
                     // Verifying checksum 
                     // Warning! Here should be the switch for the checksum/CRC transmission
                     byteBuffer = (byte)port.ReadByte();

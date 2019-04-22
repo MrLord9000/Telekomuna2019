@@ -12,9 +12,16 @@ namespace TelekomunikacjaZadanie2
         static void Main(string[] args)
         {
             SerialPortHandler portHandler = SerialPortHandler.InitializeSerialPort();
-            XModem.TransmitData(portHandler, "inputData.txt");
+            if (SerialPortHandler.transmissionMode == 0)
+            {
+                XModem.TransmitData(portHandler, "inputData.txt");
+            }
+            else if (SerialPortHandler.transmissionMode == 1)
+            {
+                XModem.ReceiveData(portHandler, "outputData.txt");
+            }
+            else throw new Exception("Bad transmission mode selected.");
         }
-
  
     }
 }

@@ -7,6 +7,7 @@ namespace TelekomunikacjaZadanie2
     class SerialPortHandler
     {
         public SerialPort _mainSerialPort { get; }
+        public static int transmissionMode;
 
         /// <summary>
         /// Main constructor responsible for serial port initialization. Set private to prevent from misuse, please use initializer methods to create handler objects.
@@ -27,6 +28,10 @@ namespace TelekomunikacjaZadanie2
             Console.WriteLine(" /\\/\\ | Serial Port Initializer Invoked! Prepare for takeoff! | /\\/\\");
             Console.WriteLine(" \\/\\/ | Initializing serial port ...                          | \\/\\/");
             Console.WriteLine(" ++++ |-------------------------------------------------------| ++++");
+
+            string[] transmissionModes = { "Send Data", "Receive Data" };
+            transmissionMode = SmartConsoleInput.ListSelectIndex(" <  > Select transmission mode: ", transmissionModes,
+                                                                 ">< Make a selection, then press enter ><");
 
             string[] portNames = SerialPort.GetPortNames();
             portName = SmartConsoleInput.ListSelect<string>( " <  > Available ports: ", portNames,

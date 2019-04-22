@@ -32,7 +32,9 @@ namespace TelekomunikacjaZadanie2
         private static SerialPort port;
         private static byte seq;
         private static byte[] transmitData;
+        private static Queue<byte> receivedData;
         private static long offset;
+        private static bool first;
 
         public static void TransmitData(SerialPortHandler handler, string filePath)
         {
@@ -77,9 +79,65 @@ namespace TelekomunikacjaZadanie2
             }
         }
 
-        public static void ReceiveData(SerialPortHandler handler)
+        public static void ReceiveData(SerialPortHandler handler, string filePath)
         {
+            // Setting the reference to serial port object
             port = handler._mainSerialPort;
+            // Pretty important to make reset the sequence number!
+            seq = 1;
+            // Read the data to be transmitted and store it in an array
+            receivedData = new Queue<byte>();
+
+            // Open the port if not done already.
+            if (!port.IsOpen)
+            {
+                port.Open();
+            }
+
+            //Transmission initialization
+            try
+            {
+                InitReceiver(10, 10);
+
+                //Start receiving packets
+                Sym status;
+                do
+                {
+                    status = ReceivePacket(10);
+                        Console.WriteLine("Sent symbol: " + status.ToString());
+                    PortWriteByte((byte)status);
+
+                } while (status != Sym.EOT);
+
+                PortWriteByte((byte)Sym.ACK);
+            }
+            catch (TimeoutException e)
+            {
+                Console.WriteLine(e.Message);
+                return;
+            }
+
+        }
+
+        private static void InitReceiver(int intervalSeconds, int repeats)
+        {
+            first = true;
+            byte receivedByte = 0;
+            port.ReadTimeout = intervalSeconds * 1000;
+
+            for (int i = 0; i < repeats; i++)
+            {
+                PortWriteByte((byte)Sym.NAK);
+                try
+                {
+                    receivedByte = (byte)port.ReadByte();
+                }
+                catch (TimeoutException) { }
+
+                if (receivedByte == (byte)Sym.SOH)
+                    return;
+            }
+            throw new TimeoutException("Initialization failed. Didn't receive SOH symbol thru " + repeats + " repeats between " + intervalSeconds + " interval seconds.");
         }
 
         private static bool WaitForSym(Sym symbol, int timeoutSeconds)
@@ -108,6 +166,79 @@ namespace TelekomunikacjaZadanie2
             port.ReadTimeout = timeoutSeconds * 1000;
             byte receivedByte = (byte)port.ReadByte();
             return (Sym)receivedByte;
+        }
+
+        private static Sym ReceivePacket(int timeoutSeconds)
+        {
+            port.ReadTimeout = timeoutSeconds * 1000;
+
+            byte byteBuffer = 0;
+            byte[] dataBuffer = new byte[128];
+
+            byteBuffer = (byte)port.ReadByte();
+
+            //First time (for seq == 1) it shouldn't check for SOH, as the initialization has already read the SOH byte to check if data is coming
+            if(!first)
+            {
+                if(byteBuffer == (byte)Sym.SOH)
+                {
+                    byteBuffer = (byte)port.ReadByte(); // Here the seq number should be read
+                    Console.WriteLine("Seq: " + byteBuffer);
+                }
+                else if (byteBuffer == (byte)Sym.EOT)
+                {
+                    return Sym.ACK;
+                }
+            }
+            else first = false;
+            // This isn't the best way to do this, but it works so whatever.
+
+            if (byteBuffer == seq)
+            {
+                // seq number received succesfully
+                byteBuffer = (byte)port.ReadByte(); // Here the cmpl seq should be read
+
+                if(byteBuffer == 255 - (255 & seq))
+                {
+                    // cmpl seq received succefully
+                    // Increase seq
+                    seq++;
+                    if (seq == 0) seq = 1; //Never let seq be 0, or the whole thing will fall apart
+
+                    // Reading 128 bytes of data
+                    for (int i = 0; i < 128; i++)
+                    {
+                        dataBuffer[i] = (byte)port.ReadByte();
+                    }
+                    // Verifying checksum 
+                    // Warning! Here should be the switch for the checksum/CRC transmission
+                    byteBuffer = (byte)port.ReadByte();
+                    if(byteBuffer != Checksum(dataBuffer))
+                    {
+                        //Handle wrong checksum
+                        return Sym.NAK;
+                    }
+                    else
+                    {
+                        //Handle succesful checksum
+                        //Copy all bytes from buffer to receivedData
+                        foreach(byte elem in dataBuffer)
+                        {
+                            receivedData.Enqueue(elem);
+                        }
+                        return Sym.ACK;
+                    }
+                }
+                else
+                {
+                    throw new Exception("Bad complement of seq received!");
+                }
+            }
+            else
+            {
+                throw new Exception("Bad symbol or seq number!");
+            }
+            throw new InvalidOperationException("Reached unwanted area of ReceivePacket function!");
         }
 
         /// <summary>

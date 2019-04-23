@@ -212,6 +212,10 @@ namespace TelekomunikacjaZadanie2
                     Console.WriteLine("Received EOT, cleaning up...");
                     return Sym.EOT;
                 }
+                else if (byteBuffer == (byte)Sym.CAN)
+                {
+                    throw new Exception("File transfer cancelled");
+                }
             }
             else first = false;
             // This isn't the best way to do this, but it works so whatever.

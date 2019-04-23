@@ -24,7 +24,8 @@ namespace TelekomunikacjaZadanie2
         ACK = 6,
         NAK = 21,
         CAN = 24,
-        SUB = 26
+        SUB = 26,
+        C = 67
     }
 
     class XModem
@@ -54,10 +55,12 @@ namespace TelekomunikacjaZadanie2
 
             try
             {
-                // First wait for NAK symbol from receiver to begin transmission
-                if(WaitForSym(Sym.NAK, 10))
+                // First wait for NAK or C symbol from receiver to begin transmission
+                Sym protocolMode = WaitForAny(10);
+
+                if(protocolMode == Sym.NAK || protocolMode == Sym.C)
                 {
-                    Console.WriteLine("Received NAK");
+                    Console.WriteLine("Received " + protocolMode.ToString());
                     // Reset the data byte offset and start transmission
                     offset = 0;
                     Console.WriteLine("transmitData length: " + transmitData.Length);
@@ -65,7 +68,7 @@ namespace TelekomunikacjaZadanie2
                     {
                         Console.WriteLine("offset: " + offset);
                         
-                        TransmitPacket();
+                        TransmitPacket(protocolMode);
                     }
 
                     PortWriteByte((byte)Sym.EOT);
@@ -83,8 +86,12 @@ namespace TelekomunikacjaZadanie2
             }
         }
 
-        public static void ReceiveData(SerialPortHandler handler, string filePath)
+        public static void ReceiveData(SerialPortHandler handler, string filePath, int mode)
         {
+            Sym protocolMode;
+            if (mode == 0) protocolMode = Sym.NAK;
+            else if (mode == 1) protocolMode = Sym.C;
+            else throw new Exception("Bad protocol mode!");
             // Setting the reference to serial port object
             port = handler._mainSerialPort;
             // Pretty important to make reset the sequence number!
@@ -101,13 +108,13 @@ namespace TelekomunikacjaZadanie2
             //Transmission initialization
             try
             {
-                InitReceiver(10, 10);
+                InitReceiver(10, 10, protocolMode);
 
                 //Start receiving packets
                 Sym status;
                 do
                 {
-                    status = ReceivePacket(10);
+                    status = ReceivePacket(10, protocolMode);
                     if(status != Sym.EOT)
                     {
                         Console.WriteLine("Sent symbol: " + status.ToString());
@@ -141,25 +148,29 @@ namespace TelekomunikacjaZadanie2
 
         }
 
-        private static void InitReceiver(int intervalSeconds, int repeats)
+        private static void InitReceiver(int intervalSeconds, int repeats, Sym protocolMode)
         {
+            if (protocolMode != Sym.NAK && protocolMode != Sym.C) throw new Exception("Bad protocol mode passed!");
             first = true;
             byte receivedByte = 0;
             port.ReadTimeout = intervalSeconds * 1000;
 
             for (int i = 0; i < repeats; i++)
             {
-                PortWriteByte((byte)Sym.NAK);
+                PortWriteByte((byte)protocolMode); // Should write NAK or C
                 try
                 {
                     receivedByte = (byte)port.ReadByte();
                 }
                 catch (TimeoutException) { }
 
-                if (receivedByte == (byte)Sym.SOH)
+                if (receivedByte == (byte)Sym.SOH && protocolMode == Sym.NAK)
+                    return;
+
+                if (receivedByte == (byte)Sym.C && protocolMode == Sym.C)
                     return;
             }
-            throw new TimeoutException("Initialization failed. Didn't receive SOH symbol thru " + repeats + " repeats between " + intervalSeconds + " interval seconds.");
+            throw new TimeoutException("Initialization failed. Didn't receive SOH or C symbol thru " + repeats + " repeats between " + intervalSeconds + " interval seconds.");
         }
 
         private static bool WaitForSym(Sym symbol, int timeoutSeconds)
@@ -190,7 +201,7 @@ namespace TelekomunikacjaZadanie2
             return (Sym)receivedByte;
         }
 
-        private static Sym ReceivePacket(int timeoutSeconds)
+        private static Sym ReceivePacket(int timeoutSeconds, Sym protocolMode)
         {
             port.ReadTimeout = timeoutSeconds * 1000;
 
@@ -202,7 +213,7 @@ namespace TelekomunikacjaZadanie2
             //First time (for seq == 1) it shouldn't check for SOH, as the initialization has already read the SOH byte to check if data is coming
             if(!first)
             {
-                if(byteBuffer == (byte)Sym.SOH)
+                if(byteBuffer == (byte)Sym.SOH || byteBuffer == (byte)Sym.C)
                 {
                     byteBuffer = (byte)port.ReadByte(); // Here the seq number should be read
                     Console.WriteLine("Seq: " + byteBuffer);
@@ -227,7 +238,7 @@ namespace TelekomunikacjaZadanie2
 
                 if(byteBuffer == 255 - (255 & seq))
                 {
-                    // cmpl seq received succefully
+                    // cmpl seq received succesfully
                     // Increase seq
                     seq++;
                     if (seq == 0) seq = 1; //Never let seq be 0, or the whole thing will fall apart
@@ -242,21 +253,48 @@ namespace TelekomunikacjaZadanie2
                         DisplayData(dataBuffer);
                     // Verifying checksum 
                     // Warning! Here should be the switch for the checksum/CRC transmission
-                    byteBuffer = (byte)port.ReadByte();
-                    if(byteBuffer != Checksum(dataBuffer))
+                    if(protocolMode == Sym.NAK)
                     {
-                        //Handle wrong checksum
-                        return Sym.NAK;
-                    }
-                    else
-                    {
-                        //Handle succesful checksum
-                        //Copy all bytes from buffer to receivedData
-                        foreach(byte elem in dataBuffer)
+                        byteBuffer = (byte)port.ReadByte();
+                        if (byteBuffer != Checksum(dataBuffer))
                         {
-                            receivedData.Enqueue(elem);
+                            //Handle wrong checksum
+                            return Sym.NAK;
                         }
-                        return Sym.ACK;
+                        else
+                        {
+                            //Handle succesful checksum
+                            //Copy all bytes from buffer to receivedData
+                            foreach (byte elem in dataBuffer)
+                            {
+                                receivedData.Enqueue(elem);
+                            }
+                            return Sym.ACK;
+                        }
+                    }
+                    else if(protocolMode == Sym.C)
+                    {
+                        byte[] dataCrc = new byte[130];
+                        dataBuffer.CopyTo(dataCrc, 0);
+                        dataCrc[128] = (byte)port.ReadByte();
+                        dataCrc[129] = (byte)port.ReadByte();
+
+                        ShiftRegister register = new ShiftRegister(dataCrc, false);
+                        if(register.CalcCRC_16() == 0)
+                        {
+                            // Crc ok, proceed
+                            foreach (byte elem in dataBuffer)
+                            {
+                                receivedData.Enqueue(elem);
+                            }
+                            return Sym.ACK;
+                        }
+                        else
+                        {
+                            // Bad crc, repeat process
+                            Console.WriteLine("Bad crc received, requesting retry.");
+                            return Sym.NAK;
+                        }
                     }
                 }
                 else
@@ -274,10 +312,19 @@ namespace TelekomunikacjaZadanie2
         /// <summary>
         /// Function used for packet transmission in xmodem protocol
         /// </summary>
-        private static void TransmitPacket()
+        private static void TransmitPacket(Sym mode)
         {
-            PortWriteByte((byte)Sym.SOH);   // Sending StartOfHeader symbol for packet initialization
-                                            //Console.WriteLine("SOH");
+            if (mode == Sym.NAK)
+            {
+                PortWriteByte((byte)Sym.SOH);   // Sending StartOfHeader symbol for packet initialization
+                                                //Console.WriteLine("SOH")
+            }
+            else if (mode == Sym.C)
+            {
+                PortWriteByte((byte)Sym.C);   // Sending C symbol for CRC packet initialization
+            }
+            else throw new Exception("Bad protocol mode passed");
+
             if (seq == 0) seq = 1;
             PortWriteByte(seq);             // Sending sequence number
                     //Console.WriteLine("seq: " + seq);
@@ -295,8 +342,19 @@ namespace TelekomunikacjaZadanie2
 
             // Sending 128 bytes of data
             port.Write(temp, 0, 128);
-            // Calculating and sending checksum
-            PortWriteByte(Checksum(temp));
+
+            if(mode == Sym.NAK)
+            {
+                // Calculating and sending checksum
+                PortWriteByte(Checksum(temp));
+            }
+            else if(mode == Sym.C)
+            {
+                ShiftRegister register = new ShiftRegister(temp, true);
+                ushort crcOut = register.CalcCRC_16();
+                PortWriteByte( (byte)(crcOut >> 8) );
+                PortWriteByte( (byte)crcOut );
+            }
 
             // Wait for accept from the receiver
             Sym result = WaitForAny(10);
